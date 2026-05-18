@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(psql --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(psql --version 2>&1)",
+      "PowerShell(Get-Command psql -ErrorAction SilentlyContinue)",
+      "Read(//c/Program Files/**)",
+      "PowerShell(Start-Sleep -Seconds 2; try { $r = Invoke-WebRequest -Uri \"http://localhost:4000/api/products?price_min=500&price_max=2000\" -UseBasicParsing; $r.StatusCode; $data = $r.Content | ConvertFrom-Json; Write-Host \"Total: $\\($data.total\\)\"; $data.products | Select-Object -First 3 | ForEach-Object { \"$\\($_.name\\) — $\\($_.price\\)₽\" } } catch { $_.Exception.Message })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:4000/api/products?in_stock=true\" -UseBasicParsing; $r.StatusCode; $data = $r.Content | ConvertFrom-Json; Write-Host \"In stock total: $\\($data.total\\)\" } catch { $_.Exception.Message })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:5173/admin\" -UseBasicParsing; $r.StatusCode } catch { $_.Exception.Message })",
+      "PowerShell(Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:4000/api/health\" -UseBasicParsing; $r.StatusCode } catch { $_.Exception.Message })",
+      "Bash(mkdir -p \"c:/Users/remig/OneDrive/Рабочий стол/Лиза Курсач/vellu-fullstack/vellu/frontend/public/images/products\")",
+      "PowerShell(Get-ChildItem \"c:\\\\Users\\\\remig\\\\OneDrive\\\\Рабочий стол\\\\Лиза Курсач\\\\vellu-fullstack\\\\vellu\\\\frontend\\\\public\\\\images\\\\products\" | Select-Object Name, @{N='KB';E={[math]::Round\\($_.Length/1024\\)}})",
+      "Bash(npm run *)",
+      "Bash(node src/db/update-images.js)",
+      "Bash(node -e ' *)",
+      "Read(//c/Users/remig/OneDrive/����稩 �⮫/���� �����/vellu-fullstack/vellu/frontend/public/images/**)",
+      "Read(//c/Users/remig/OneDOpen/Рабочий стол/Лиза Курсач/vellu-fullstack/vellu/frontend/src/views/**)",
+      "Bash(dir \"c:/Users/remig/OneDrive/Рабочий стол/Лиза Курсач/vellu-fullstack/vellu/\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\remig\\OneDrive\\Рабочий стол\\Лиза Курсач\\vellu-fullstack\\vellu\\frontend\\public\\images"
+    ]
+  }
+}

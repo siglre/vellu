@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Проверка изображений</title>
+<style>
+  body { font-family: sans-serif; background: #f5f5f5; padding: 24px; }
+  h1 { margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+  .card { background: white; border-radius: 8px; padding: 12px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+  .card img { width: 100%; height: 160px; object-fit: contain; background: #f9f9f9; border-radius: 4px; }
+  .card p { font-size: 11px; color: #333; margin: 8px 0 0; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>Файлы в /images/products/</h1>
+<div class="grid" id="grid"></div>
+<script>
+const files = [
+  "alien.jpg","alex-bear.jpg","alex-bear-2.jpg",
+  "angry-ball.jpg","angry-ball-2.jpg",
+  "avocado.jpg","avocado-2.jpg",
+  "birthday-cake.jpg","birthday-cake-2.jpg","birthday-cake-3.jpg","birthday-cake-4.jpg",
+  "comet.jpg","cool-peanut.jpg","cream-bunny.jpg","cream-bunny-2.jpg",
+  "croissant.jpg","egg-scientist.jpg","elephant.jpg","elephant-2.jpg",
+  "floral-bunny.jpg","fox.jpg","fox-2.jpg",
+  "frog.jpg","frog-2.jpg",
+  "gray-bunny.jpg","gray-bunny-2.jpg",
+  "harry-bear.jpg","harry-bear-2.jpg",
+  "hat-peanut.jpg","hippo.jpg","hydrangea.jpg",
+  "ivy-plant.jpg","lamb.jpg","lamb-2.jpg",
+  "lightbulb.jpg","marshmallow.jpg","marshmallow-2.jpg","marshmallow-3.jpg",
+  "mushroom.jpg","mushroom-2.jpg",
+  "naomi-bear.jpg","naomi-bear-2.jpg",
+  "octopus.jpg","octopus-2.jpg",
+  "orange-crab.jpg","peach.jpg","peach-2.jpg",
+  "pelican.jpg","pink-bunny.jpg","pink-bunny-2.jpg",
+  "pink-ray.jpg","pink-ray-2.jpg",
+  "pistachio.jpg","peanut.jpg","peanut-2.jpg","peanut-3.jpg",
+  "red-lobster.jpg","sailor-bear.jpg","sailor-bear-2.jpg",
+  "small-bear.jpg","small-bear-2.jpg",
+  "space-dog.jpg","star-bunny.jpg","star-bunny-2.jpg","star-bunny-3.jpg",
+  "succulent-bunny.jpg","succulent-bunny-2.jpg",
+  "sunshine.jpg","tomato.jpg","tomato-2.jpg","ufo.jpg",
+  "placeholder.jpg"
+];
+const grid = document.getElementById('grid');
+files.forEach(f => {
+  const d = document.createElement('div');
+  d.className = 'card';
+  d.innerHTML = `<img src="/images/products/${f}" onerror="this.style.opacity=.2"><p>${f}</p>`;
+  grid.appendChild(d);
+});
+</script>
+</body>
+</html>
