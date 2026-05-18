@@ -27,9 +27,9 @@ async function fetchCart(userId, client) {
       p.id AS product_id, p.name, p.image_url, p.stock,
       c.name AS category,
       COALESCE(
-        (SELECT (el->>'price')::numeric
-         FROM jsonb_array_elements(p.sizes) AS el
-         WHERE el->>'name' = ci.size AND (el->>'price') IS NOT NULL
+        (SELECT (el::json->>'price')::numeric
+         FROM unnest(p.sizes) AS el
+         WHERE (el::json->>'name') = ci.size AND ((el::json->>'price') IS NOT NULL)
          LIMIT 1),
         p.price
       ) AS price
