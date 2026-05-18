@@ -50,7 +50,7 @@ router.get('/', [
     const sql = `
       SELECT
         p.id, p.name, p.description, p.price, p.tag,
-        p.image_url, NULL AS images, p.sizes, p.stock, p.is_active, p.created_at,
+        p.image_url, ARRAY[]::text[] AS images, p.sizes, p.stock, p.is_active, p.created_at,
         p.category_id, c.name AS category, c.emoji AS category_emoji
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
@@ -87,7 +87,7 @@ router.get('/:id', async (req, res, next) => {
     const { rows } = await pool.query(`
       SELECT
         p.id, p.name, p.description, p.price, p.tag,
-        p.image_url, NULL AS images, p.sizes, p.stock, p.is_active, p.created_at,
+        p.image_url, ARRAY[]::text[] AS images, p.sizes, p.stock, p.is_active, p.created_at,
         c.name AS category, c.emoji AS category_emoji
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
