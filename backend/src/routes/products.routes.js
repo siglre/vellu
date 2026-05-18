@@ -141,7 +141,7 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
       WHERE id = $10 RETURNING *
     `, [name, description, effectivePrice, category_id, tag, image_url,
         sizes  != null ? JSON.stringify(sizes)  : null,
-        stock, is_active, req.params.id];
+        stock, is_active, req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Товар не найден' });
     res.json(rows[0]);
   } catch (err) {
