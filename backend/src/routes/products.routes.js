@@ -109,13 +109,12 @@ router.post('/', requireAdmin, [
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
   try {
-    const { name, description, price, category_id, tag, image_url, sizes = [], stock = 0, images } = req.body;
+    const { name, description, price, category_id, tag, image_url, sizes = [], stock = 0 } = req.body;
     const effectivePrice = calcMinPrice(price, sizes);
     const { rows } = await pool.query(`
-      INSERT INTO products (name, description, price, category_id, tag, image_url, images, sizes, stock)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
+      INSERT INTO products (name, description, price, category_id, tag, image_url, sizes, stock)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
     `, [name, description, effectivePrice, category_id, tag, image_url,
-        JSON.stringify(images || (image_url ? [image_url] : [])),
         JSON.stringify(sizes), stock]);
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -126,7 +125,7 @@ router.post('/', requireAdmin, [
 // PATCH /api/products/:id  (admin)
 router.patch('/:id', requireAdmin, async (req, res, next) => {
   try {
-    const { name, description, price, category_id, tag, image_url, images, sizes, stock, is_active } = req.body;
+    const { name, description, price, category_id, tag, image_url, sizes, stock, is_active } = req.body;
     const effectivePrice = (price != null && sizes != null) ? calcMinPrice(price, sizes) : price;
     const { rows } = await pool.query(`
       UPDATE products SET
@@ -136,15 +135,13 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
         category_id = COALESCE($4, category_id),
         tag         = COALESCE($5, tag),
         image_url   = COALESCE($6, image_url),
-        images      = COALESCE($7, images),
-        sizes       = COALESCE($8, sizes),
-        stock       = COALESCE($9, stock),
-        is_active   = COALESCE($10, is_active)
-      WHERE id = $11 RETURNING *
+        sizes       = COALESCE($7, sizes),
+        stock       = COALESCE($8, stock),
+        is_active   = COALESCE($9, is_active)
+      WHERE id = $10 RETURNING *
     `, [name, description, effectivePrice, category_id, tag, image_url,
-        images != null ? JSON.stringify(images) : null,
         sizes  != null ? JSON.stringify(sizes)  : null,
-        stock, is_active, req.params.id]);
+        stock, is_active, req.params.id];
     if (!rows[0]) return res.status(404).json({ error: 'Товар не найден' });
     res.json(rows[0]);
   } catch (err) {
