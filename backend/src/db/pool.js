@@ -1,29 +1,37 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const { Pool } = pg;
 
-const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME     || 'vellu',
-  user:     process.env.DB_USER     || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-});
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
+    }
+  : {
+      host:     process.env.DB_HOST     || 'localhost',
+      port:     parseInt(process.env.DB_PORT || '5432'),
+      database: process.env.DB_NAME     || 'vellu',
+      user:     process.env.DB_USER     || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      max: 10,
+    };
+
+const pool = new Pool(poolConfig);
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client', err);
-  process.exit(-1);
+  console.error('Unexpected PostgreSQL error:', err.message);
 });
 
-// Проверка подключения при старте
-pool.query('SELECT NOW()', (err) => {
+pool.query('SELECT NOW()', (err, res) => {
   if (err) {
-    console.error('❌ PostgreSQL connection failed:', err.message);
+    console.error('PostgreSQL connection failed:', err.message);
   } else {
-    console.log('✅ PostgreSQL connected');
+    console.log('PostgreSQL connected:', res.rows[0].now);
   }
 });
 
