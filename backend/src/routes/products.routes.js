@@ -16,6 +16,17 @@ function normalizeImages(image_url, images) {
   return [...new Set(list)];
 }
 
+// Конвертирует JS-массив в строку PostgreSQL-литерала text[]
+// Обходит pg-сериализацию, которая ломается на пустых массивах и массивах объектов
+function toPgTextArray(arr) {
+  if (!arr || arr.length === 0) return null;
+  const items = arr.map(el => {
+    const s = typeof el === 'string' ? el : JSON.stringify(el);
+    return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  });
+  return `{${items.join(',')}}`;
+}
+
 // GET /api/products
 router.get('/', [
   query('category').optional().isString(),
@@ -120,13 +131,11 @@ router.post('/', requireAdmin, [
     const normalizedImages = normalizeImages(image_url, images);
     const effectivePrice = calcMinPrice(price, sizes);
     const primaryImageUrl = image_url || normalizedImages[0] || null;
-    const imagesParam = normalizedImages.length > 0 ? normalizedImages : null;
-    const sizesParam  = sizes.length > 0 ? sizes : null;
     const { rows } = await pool.query(`
       INSERT INTO products (name, description, price, category_id, tag, image_url, images, sizes, stock)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
+      VALUES ($1,$2,$3,$4,$5,$6,$7::text[],$8::text[],$9) RETURNING *
     `, [name, description, effectivePrice, category_id, tag, primaryImageUrl,
-        imagesParam, sizesParam, stock]);
+        toPgTextArray(normalizedImages), toPgTextArray(sizes), stock]);
     res.status(201).json(rows[0]);
   } catch (err) {
     next(err);
@@ -139,8 +148,6 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
     const { name, description, price, category_id, tag, image_url, images, sizes, stock, is_active } = req.body;
     const normalizedImages = images != null ? normalizeImages(image_url, images) : null;
     const effectivePrice = (price != null && sizes != null) ? calcMinPrice(price, sizes) : price;
-    const imagesParam = (normalizedImages && normalizedImages.length > 0) ? normalizedImages : null;
-    const sizesParam  = (sizes && sizes.length > 0) ? sizes : null;
     const { rows } = await pool.query(`
       UPDATE products SET
         name        = COALESCE($1, name),
@@ -149,13 +156,13 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
         category_id = COALESCE($4, category_id),
         tag         = COALESCE($5, tag),
         image_url   = COALESCE($6, image_url),
-        images      = COALESCE($7, images),
-        sizes       = COALESCE($8, sizes),
+        images      = COALESCE($7::text[], images),
+        sizes       = COALESCE($8::text[], sizes),
         stock       = COALESCE($9, stock),
         is_active   = COALESCE($10, is_active)
       WHERE id = $11 RETURNING *
     `, [name, description, effectivePrice, category_id, tag, image_url,
-        imagesParam, sizesParam,
+        toPgTextArray(normalizedImages), toPgTextArray(sizes),
         stock, is_active, req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Товар не найден' });
     res.json(rows[0]);
