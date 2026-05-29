@@ -7,7 +7,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
-const IMAGES_DIR = path.join(__dirname, '../../../frontend/public/images/products');
+const IMAGES_DIR = path.join(__dirname, '../../uploads');
 
 // =============================================
 // CATEGORIES
@@ -75,10 +75,11 @@ export const imagesRouter = Router();
 
 imagesRouter.get('/', requireAdmin, (_req, res) => {
   try {
+    const base = process.env.BACKEND_URL || 'https://vellu-production.up.railway.app';
     const files = readdirSync(IMAGES_DIR)
       .filter(f => /\.(jpe?g|png|webp|gif)$/i.test(f))
       .sort()
-      .map(f => `/images/products/${f}`);
+      .map(f => `${base}/uploads/${f}`);
     res.json(files);
   } catch {
     res.json([]);

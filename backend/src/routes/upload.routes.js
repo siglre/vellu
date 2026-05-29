@@ -29,7 +29,8 @@ const router = Router();
 
 router.post('/', requireAdmin, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Файл не загружен' });
-  res.json({ url: `/uploads/${req.file.filename}` });
+  const base = process.env.BACKEND_URL || 'https://vellu-production.up.railway.app';
+  res.json({ url: `${base}/uploads/${req.file.filename}` });
 });
 
 export default router;
