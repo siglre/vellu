@@ -5,8 +5,7 @@ import { fileURLToPath } from 'url';
 import pool from '../db/pool.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const IMAGES_DIR = path.join(__dirname, '../../uploads');
 
 // =============================================
@@ -69,21 +68,37 @@ categoriesRouter.delete('/:id', requireAdmin, async (req, res, next) => {
 });
 
 // =============================================
-// IMAGES — список файлов из public/images/products
+// IMAGES — статичные из frontend/public + загруженные в /uploads
 // =============================================
+const STATIC_IMAGES = [
+  'alex-bear-2.jpg','alex-bear.jpg','alien.jpg','angry-ball-2.jpg','angry-ball.jpg',
+  'avocado.jpg','birthday-cake-2.jpg','birthday-cake.jpg','comet.jpg','cool-peanut.jpg',
+  'cream-bunny.jpg','croissant.jpg','egg-scientist.jpg','elephant.jpg','fox.jpg',
+  'frog-2.jpg','frog.jpg','gray-bunny.jpg','harry-bear-2.jpg','harry-bear.jpg',
+  'hat-peanut.jpg','hippo.jpg','hydrangea.jpg','ivy-plant.jpg','lamb.jpg',
+  'lightbulb.jpg','marshmallow-2.jpg','marshmallow.jpg','mushroom.jpg',
+  'naomi-bear-2.jpg','naomi-bear.jpg','octopus.jpg','orange-crab.jpg','peach.jpg',
+  'peanut-2.jpg','peanut.jpg','pelican.jpg','pink-bunny.jpg','pink-ray-2.jpg',
+  'pink-ray.jpg','pistachio.jpg','red-lobster.jpg','sailor-bear-2.jpg','sailor-bear.jpg',
+  'small-bear-2.jpg','small-bear.jpg','space-dog.jpg','star-bunny-2.jpg','star-bunny.jpg',
+  'succulent-bunny-2.jpg','succulent-bunny.jpg','sunshine.jpg','tomato.jpg',
+];
+
 export const imagesRouter = Router();
 
 imagesRouter.get('/', requireAdmin, (_req, res) => {
+  const staticUrls = STATIC_IMAGES.map(f => `/images/products/${f}`);
+
+  let uploadedUrls = [];
   try {
-    const base = process.env.BACKEND_URL || 'https://vellu-production.up.railway.app';
-    const files = readdirSync(IMAGES_DIR)
+    const base = process.env.BACKEND_URL || '';
+    uploadedUrls = readdirSync(IMAGES_DIR)
       .filter(f => /\.(jpe?g|png|webp|gif)$/i.test(f))
       .sort()
       .map(f => `${base}/uploads/${f}`);
-    res.json(files);
-  } catch {
-    res.json([]);
-  }
+  } catch { /* uploads dir пуста или недоступна */ }
+
+  res.json([...uploadedUrls, ...staticUrls]);
 });
 
 // =============================================
