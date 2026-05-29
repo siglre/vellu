@@ -125,6 +125,29 @@ router.get('/admin/all', requireAdmin, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/orders/admin/:id  (admin) — полный заказ с позициями
+router.get('/admin/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        o.id, o.status, o.total, o.created_at,
+        o.shipping_name, o.shipping_phone, o.shipping_address,
+        u.name AS customer_name, u.email AS customer_email,
+        json_agg(json_build_object(
+          'id', oi.id, 'name', oi.name, 'price', oi.price,
+          'qty', oi.qty, 'size', oi.size, 'image_url', oi.image_url
+        ) ORDER BY oi.id) AS items
+      FROM orders o
+      JOIN users u ON u.id = o.user_id
+      JOIN order_items oi ON oi.order_id = o.id
+      WHERE o.id = $1
+      GROUP BY o.id, u.name, u.email
+    `, [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: 'Заказ не найден' });
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+});
+
 // PATCH /api/orders/admin/:id/status  (admin)
 router.patch('/admin/:id/status', requireAdmin, async (req, res, next) => {
   try {

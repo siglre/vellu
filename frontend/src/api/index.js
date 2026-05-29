@@ -79,6 +79,7 @@ export const ordersApi = {
   get:          (id)       => api.get(`/orders/${id}`),
   create:       (data)     => api.post('/orders', data),
   adminList:    (params)   => api.get('/orders/admin/all', { params }),
+  adminGet:     (id)       => api.get(`/orders/admin/${id}`),
   updateStatus: (id, status) => api.patch(`/orders/admin/${id}/status`, { status }),
 };
 

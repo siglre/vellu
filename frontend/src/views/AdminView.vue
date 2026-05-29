@@ -45,19 +45,20 @@
           <h3>Заказы</h3>
           <div v-if="loadingOrders" style="color:var(--grey);padding:24px">Загрузка...</div>
           <table v-else class="admin-table">
-            <thead><tr><th>ID</th><th>Покупатель</th><th>Сумма</th><th>Статус</th><th>Дата</th><th></th></tr></thead>
+            <thead><tr><th>ID</th><th>Покупатель</th><th>Сумма</th><th>Статус</th><th>Дата</th><th></th><th></th></tr></thead>
             <tbody>
               <tr v-for="o in orders" :key="o.id">
                 <td style="font-family:monospace;font-size:12px">{{ o.id.slice(0,8) }}…</td>
                 <td>{{ o.customer_name }}</td>
                 <td>₽{{ Number(o.total).toLocaleString('ru') }}</td>
-                <td><span :class="['badge', statusClass(o.status)]">{{ o.status }}</span></td>
+                <td><span :class="['badge', statusClass(o.status)]">{{ statusLabel(o.status) }}</span></td>
                 <td style="color:var(--grey);font-size:13px">{{ new Date(o.created_at).toLocaleDateString('ru') }}</td>
                 <td>
                   <select :value="o.status" @change="updateStatus(o.id, $event.target.value)" class="sort-select" style="font-size:12px;padding:4px 8px">
-                    <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
+                    <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
                   </select>
                 </td>
+                <td><button class="btn-details" @click="openOrderDetail(o.id)">Детали</button></td>
               </tr>
             </tbody>
           </table>
@@ -230,6 +231,85 @@
       </Transition>
     </Teleport>
 
+    <!-- Модальное окно деталей заказа -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="orderDetail.open" class="modal-wrap">
+          <div class="backdrop" @click="orderDetail.open = false"/>
+          <div class="modal-box" style="max-width:640px">
+            <button class="modal-close" @click="orderDetail.open = false">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <div v-if="orderDetail.loading" style="padding:48px;text-align:center;color:var(--grey)">Загрузка...</div>
+
+            <template v-else-if="orderDetail.data">
+              <!-- Заголовок -->
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+                <h3 class="modal-title" style="margin:0">Заказ #{{ orderDetail.data.id.slice(0,8) }}</h3>
+                <span :class="['badge', statusClass(orderDetail.data.status)]">{{ statusLabel(orderDetail.data.status) }}</span>
+                <span style="font-size:13px;color:var(--grey);margin-left:auto">
+                  {{ new Date(orderDetail.data.created_at).toLocaleDateString('ru',{day:'numeric',month:'long',year:'numeric'}) }}
+                </span>
+              </div>
+
+              <!-- Информация -->
+              <div class="od-info">
+                <div class="od-section">
+                  <p class="od-label">Покупатель</p>
+                  <p class="od-value">{{ orderDetail.data.customer_name }}</p>
+                  <p class="od-sub">{{ orderDetail.data.customer_email }}</p>
+                </div>
+                <div class="od-section">
+                  <p class="od-label">Получатель</p>
+                  <p class="od-value">{{ orderDetail.data.shipping_name || '—' }}</p>
+                  <p class="od-sub" v-if="orderDetail.data.shipping_phone">{{ orderDetail.data.shipping_phone }}</p>
+                </div>
+                <div class="od-section">
+                  <p class="od-label">Адрес доставки</p>
+                  <p class="od-value" style="font-size:13px">{{ orderDetail.data.shipping_address || '—' }}</p>
+                </div>
+              </div>
+
+              <!-- Состав заказа -->
+              <p class="od-label" style="margin-bottom:10px">Состав заказа</p>
+              <div class="od-items">
+                <div v-for="item in orderDetail.data.items" :key="item.id" class="od-item">
+                  <img v-if="item.image_url" :src="item.image_url" :alt="item.name" class="od-img"/>
+                  <div v-else class="od-img od-img-ph"/>
+                  <div style="flex:1;min-width:0">
+                    <p class="od-item-name">{{ item.name }}</p>
+                    <p class="od-item-meta">
+                      <span v-if="item.size">Размер: {{ item.size }}</span>
+                      <span v-if="item.size && item.qty > 1"> · </span>
+                      <span v-if="item.qty > 1">{{ item.qty }} шт.</span>
+                    </p>
+                  </div>
+                  <p class="od-item-price">₽{{ (Number(item.price) * item.qty).toLocaleString('ru') }}</p>
+                </div>
+              </div>
+
+              <!-- Итого + смена статуса -->
+              <div class="od-footer">
+                <div>
+                  <p class="od-label">Итого</p>
+                  <p class="od-total">₽{{ Number(orderDetail.data.total).toLocaleString('ru') }}</p>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="od-label">Статус:</span>
+                  <select :value="orderDetail.data.status"
+                    @change="updateStatusFromDetail(orderDetail.data.id, $event.target.value)"
+                    class="sort-select">
+                    <option v-for="s in statuses" :key="s" :value="s">{{ statusLabel(s) }}</option>
+                  </select>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Модальное окно категории -->
     <Teleport to="body">
       <Transition name="modal">
@@ -294,9 +374,12 @@ function openProductModal(product) {
   pf.value = product
     ? {
         ...product,
-        sizes: (product.sizes || []).map(s =>
-          typeof s === 'string' ? { name: s, price: '' } : { name: s.name, price: s.price ?? '' }
-        ),
+        sizes: (product.sizes || []).map(s => {
+          if (typeof s === 'string') {
+            try { s = JSON.parse(s); } catch { return { name: s, price: '' }; }
+          }
+          return { name: s.name, price: s.price ?? '' };
+        }),
       }
     : emptyPf();
 }
@@ -360,7 +443,7 @@ async function saveProduct() {
       image_url:   pf.value.image_url || null,
       images:      pf.value.image_url ? [pf.value.image_url] : [],
       stock:       pf.value.stock,
-      sizes:       pf.value.sizesRaw ? pf.value.sizesRaw.split(',').map(s => s.trim()).filter(Boolean) : [],
+      sizes:       pf.value.sizes.filter(s => s.name).map(s => ({ name: s.name, price: s.price || null })),
     };
     if (productModal.value.isNew) {
       await productsApi.create(payload);
@@ -428,8 +511,28 @@ const tabs = [
 ];
 const statuses = ['new','paid','processing','shipped','delivered','cancelled','refund'];
 
+function statusLabel(s) {
+  return {
+    new: 'Новый',
+    paid: 'Оплачен',
+    processing: 'В обработке',
+    shipped: 'Отправлен',
+    delivered: 'Доставлен',
+    cancelled: 'Отменён',
+    refund: 'Возврат'
+  }[s] || s;
+}
+
 function statusClass(s) {
-  return { new:'badge-green', paid:'badge-green', shipped:'badge-grey', delivered:'badge-grey', cancelled:'badge-red', refund:'badge-red' }[s] || 'badge-grey';
+  return {
+    new: 'badge-green',
+    paid: 'badge-green',
+    processing: 'badge-grey',
+    shipped: 'badge-grey',
+    delivered: 'badge-grey',
+    cancelled: 'badge-red',
+    refund: 'badge-red'
+  }[s] || 'badge-grey';
 }
 
 async function loadStats() {
@@ -462,6 +565,28 @@ async function loadProducts() {
 
 async function updateStatus(id, status) {
   await ordersApi.updateStatus(id, status);
+  await loadOrders();
+  ui.notify('Статус обновлён');
+}
+
+const orderDetail = ref({ open: false, loading: false, data: null });
+
+async function openOrderDetail(id) {
+  orderDetail.value = { open: true, loading: true, data: null };
+  try {
+    const { data } = await ordersApi.adminGet(id);
+    orderDetail.value.data = data;
+  } catch {
+    ui.notify('Не удалось загрузить заказ');
+    orderDetail.value.open = false;
+  } finally {
+    orderDetail.value.loading = false;
+  }
+}
+
+async function updateStatusFromDetail(id, status) {
+  await ordersApi.updateStatus(id, status);
+  orderDetail.value.data = { ...orderDetail.value.data, status };
   await loadOrders();
   ui.notify('Статус обновлён');
 }
@@ -576,4 +701,23 @@ onMounted(loadStats);
 
 .modal-enter-active, .modal-leave-active { transition:opacity .2s; }
 .modal-enter-from, .modal-leave-to { opacity:0; }
+
+/* Детали заказа */
+.btn-details { font-size:12px; color:var(--accent); border:1px solid var(--accent); border-radius:6px; padding:4px 10px; transition:all .15s; white-space:nowrap; }
+.btn-details:hover { background:var(--accent); color:white; }
+.od-info    { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; background:var(--cream2); border-radius:10px; padding:16px; margin-bottom:24px; }
+@media(max-width:480px) { .od-info { grid-template-columns:1fr 1fr; } }
+.od-section { display:flex; flex-direction:column; gap:3px; }
+.od-label   { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--grey); margin-bottom:2px; }
+.od-value   { font-size:14px; font-weight:500; }
+.od-sub     { font-size:12px; color:var(--grey); }
+.od-items   { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
+.od-item    { display:flex; align-items:center; gap:12px; padding:10px 12px; border:1px solid var(--beige); border-radius:8px; }
+.od-img     { width:52px; height:60px; object-fit:cover; border-radius:6px; background:var(--cream2); flex-shrink:0; }
+.od-img-ph  { background:var(--cream2); }
+.od-item-name  { font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.od-item-meta  { font-size:12px; color:var(--grey); margin-top:2px; }
+.od-item-price { font-size:14px; font-weight:500; flex-shrink:0; margin-left:8px; }
+.od-footer  { display:flex; justify-content:space-between; align-items:center; padding-top:16px; border-top:1px solid var(--beige); flex-wrap:wrap; gap:12px; }
+.od-total   { font-size:24px; font-weight:600; font-family:'Playfair Display',serif; margin-top:2px; }
 </style>
