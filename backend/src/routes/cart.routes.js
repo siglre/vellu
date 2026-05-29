@@ -18,29 +18,41 @@ async function getOrCreateCart(userId, client) {
   return rows[0].id;
 }
 
+function getSizePrice(sizes, sizeName) {
+  if (!sizeName || !sizes?.length) return null;
+  for (const s of sizes) {
+    if (!s) continue;
+    let obj = s;
+    if (typeof s === 'string') {
+      try { obj = JSON.parse(s); } catch { if (s === sizeName) return null; continue; }
+    }
+    if (obj?.name === sizeName && obj?.price) return parseFloat(obj.price);
+  }
+  return null;
+}
+
 // Получить корзину с товарами
 async function fetchCart(userId, client) {
   const cartId = await getOrCreateCart(userId, client);
   const { rows } = await client.query(`
     SELECT
       ci.id, ci.qty, ci.size,
-      p.id AS product_id, p.name, p.image_url, p.stock,
-      c.name AS category,
-      COALESCE(
-        (SELECT (el::json->>'price')::numeric
-         FROM unnest(p.sizes) AS el
-         WHERE (el::json->>'name') = ci.size AND ((el::json->>'price') IS NOT NULL)
-         LIMIT 1),
-        p.price
-      ) AS price
+      p.id AS product_id, p.name, p.image_url, p.stock, p.price AS base_price, p.sizes,
+      c.name AS category
     FROM cart_items ci
     JOIN products p ON p.id = ci.product_id
     LEFT JOIN categories c ON c.id = p.category_id
     WHERE ci.cart_id = $1
     ORDER BY ci.created_at ASC
   `, [cartId]);
-  const total = rows.reduce((sum, i) => sum + Number(i.price) * i.qty, 0);
-  return { items: rows, total: parseFloat(total.toFixed(2)), cartId };
+
+  const items = rows.map(({ sizes, base_price, ...row }) => ({
+    ...row,
+    price: getSizePrice(sizes, row.size) ?? parseFloat(base_price),
+  }));
+
+  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  return { items, total: parseFloat(total.toFixed(2)), cartId };
 }
 
 // GET /api/cart
