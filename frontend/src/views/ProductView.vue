@@ -126,8 +126,15 @@ function resetZoom() { zoomStyle.value = { transform: 'scale(1)', transition: 't
 onMounted(async () => {
   try {
     const { data } = await productsApi.get(route.params.id);
+    data.sizes = (data.sizes || [])
+      .map(s => {
+        if (!s) return null;
+        if (typeof s !== 'string') return s;
+        try { return JSON.parse(s); } catch { return { name: s, price: null }; }
+      })
+      .filter(s => s?.name);
     product.value      = data;
-    selectedSize.value = data.sizes?.[1]?.name || data.sizes?.[0]?.name || '';
+    selectedSize.value = data.sizes?.[0]?.name || '';
   } finally { loading.value = false; }
 });
 
@@ -139,6 +146,8 @@ async function handleAdd() {
     added.value = true;
     ui.notify(`${product.value.name} добавлен в корзину 🛍️`);
     setTimeout(() => { added.value = false; }, 2000);
+  } catch {
+    ui.notify('Не удалось добавить в корзину');
   } finally { adding.value = false; }
 }
 </script>

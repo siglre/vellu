@@ -14,11 +14,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Обрабатываем 401 — разлогиниваем
+// Обрабатываем 401 — разлогиниваем, но не на auth-эндпоинтах
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const url = err.config?.url || '';
+    const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
+    if (err.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('vellu_token');
       localStorage.removeItem('vellu_user');
       window.location.href = '/?login=1';
