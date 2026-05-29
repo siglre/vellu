@@ -10,6 +10,12 @@ function calcMinPrice(basePrice, sizes) {
   return prices.length ? Math.min(basePrice, ...prices) : basePrice;
 }
 
+function normalizeImages(image_url, images) {
+  const list = Array.isArray(images) ? images.filter(Boolean) : [];
+  if (image_url) list.unshift(image_url);
+  return [...new Set(list)];
+}
+
 // GET /api/products
 router.get('/', [
   query('category').optional().isString(),
@@ -50,7 +56,7 @@ router.get('/', [
     const sql = `
       SELECT
         p.id, p.name, p.description, p.price, p.tag,
-        p.image_url, ARRAY[]::text[] AS images, p.sizes, p.stock, p.is_active, p.created_at,
+        p.image_url, COALESCE(p.images, ARRAY[]::text[]) AS images, p.sizes, p.stock, p.is_active, p.created_at,
         p.category_id, c.name AS category, c.emoji AS category_emoji
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
@@ -87,7 +93,7 @@ router.get('/:id', async (req, res, next) => {
     const { rows } = await pool.query(`
       SELECT
         p.id, p.name, p.description, p.price, p.tag,
-        p.image_url, ARRAY[]::text[] AS images, p.sizes, p.stock, p.is_active, p.created_at,
+        p.image_url, COALESCE(p.images, ARRAY[]::text[]) AS images, p.sizes, p.stock, p.is_active, p.created_at,
         c.name AS category, c.emoji AS category_emoji
       FROM products p
       LEFT JOIN categories c ON c.id = p.category_id
@@ -105,17 +111,22 @@ router.post('/', requireAdmin, [
   body('name').trim().notEmpty(),
   body('price').isFloat({ min: 0 }),
   body('category_id').notEmpty(),
+  body('images').optional().isArray(),
 ], async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
   try {
-    const { name, description, price, category_id, tag, image_url, sizes = [], stock = 0 } = req.body;
+    const { name, description, price, category_id, tag, image_url, images = [], sizes = [], stock = 0 } = req.body;
+    const normalizedImages = normalizeImages(image_url, images);
     const effectivePrice = calcMinPrice(price, sizes);
+    const primaryImageUrl = image_url || normalizedImages[0] || null;
+    const imagesParam = normalizedImages.length > 0 ? normalizedImages : null;
+    const sizesParam  = sizes.length > 0 ? sizes : null;
     const { rows } = await pool.query(`
-      INSERT INTO products (name, description, price, category_id, tag, image_url, sizes, stock)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *
-    `, [name, description, effectivePrice, category_id, tag, image_url,
-        JSON.stringify(sizes), stock]);
+      INSERT INTO products (name, description, price, category_id, tag, image_url, images, sizes, stock)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
+    `, [name, description, effectivePrice, category_id, tag, primaryImageUrl,
+        imagesParam, sizesParam, stock]);
     res.status(201).json(rows[0]);
   } catch (err) {
     next(err);
@@ -125,8 +136,11 @@ router.post('/', requireAdmin, [
 // PATCH /api/products/:id  (admin)
 router.patch('/:id', requireAdmin, async (req, res, next) => {
   try {
-    const { name, description, price, category_id, tag, image_url, sizes, stock, is_active } = req.body;
+    const { name, description, price, category_id, tag, image_url, images, sizes, stock, is_active } = req.body;
+    const normalizedImages = images != null ? normalizeImages(image_url, images) : null;
     const effectivePrice = (price != null && sizes != null) ? calcMinPrice(price, sizes) : price;
+    const imagesParam = (normalizedImages && normalizedImages.length > 0) ? normalizedImages : null;
+    const sizesParam  = (sizes && sizes.length > 0) ? sizes : null;
     const { rows } = await pool.query(`
       UPDATE products SET
         name        = COALESCE($1, name),
@@ -135,12 +149,13 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
         category_id = COALESCE($4, category_id),
         tag         = COALESCE($5, tag),
         image_url   = COALESCE($6, image_url),
-        sizes       = COALESCE($7, sizes),
-        stock       = COALESCE($8, stock),
-        is_active   = COALESCE($9, is_active)
-      WHERE id = $10 RETURNING *
+        images      = COALESCE($7, images),
+        sizes       = COALESCE($8, sizes),
+        stock       = COALESCE($9, stock),
+        is_active   = COALESCE($10, is_active)
+      WHERE id = $11 RETURNING *
     `, [name, description, effectivePrice, category_id, tag, image_url,
-        sizes  != null ? JSON.stringify(sizes)  : null,
+        imagesParam, sizesParam,
         stock, is_active, req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Товар не найден' });
     res.json(rows[0]);
