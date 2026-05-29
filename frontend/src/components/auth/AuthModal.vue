@@ -76,6 +76,8 @@ const loading = ref(false);
 watch(() => ui.authOpen, (open) => {
   if (open) { form.value = { name:'', email:'', password:'' }; error.value = ''; }
 });
+// Сброс ошибки при переключении вкладок
+watch(() => ui.authMode, () => { error.value = ''; });
 
 async function handleLogin() {
   loading.value = true; error.value = '';

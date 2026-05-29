@@ -564,9 +564,13 @@ async function loadProducts() {
 }
 
 async function updateStatus(id, status) {
-  await ordersApi.updateStatus(id, status);
-  await loadOrders();
-  ui.notify('Статус обновлён');
+  try {
+    await ordersApi.updateStatus(id, status);
+    await loadOrders();
+    ui.notify('Статус обновлён');
+  } catch {
+    ui.notify('Не удалось обновить статус');
+  }
 }
 
 const orderDetail = ref({ open: false, loading: false, data: null });
@@ -592,8 +596,12 @@ async function updateStatusFromDetail(id, status) {
 }
 
 async function toggleProduct(p) {
-  await productsApi.update(p.id, { is_active: p.is_active === false ? true : false });
-  await loadProducts();
+  try {
+    await productsApi.update(p.id, { is_active: !p.is_active });
+    await loadProducts();
+  } catch {
+    ui.notify('Не удалось изменить статус товара');
+  }
 }
 
 watch(activeTab, (tab) => {

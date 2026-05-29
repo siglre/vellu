@@ -1,5 +1,6 @@
 export function errorHandler(err, req, res, next) {
   console.error(`[${new Date().toISOString()}] ERROR:`, err.message);
+  if (res.headersSent) return next(err);
 
   // PostgreSQL unique violation
   if (err.code === '23505') {

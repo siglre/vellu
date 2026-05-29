@@ -14,7 +14,7 @@
             <p style="font-weight:500">Заказ #{{ o.id.slice(0,8) }}…</p>
             <p style="font-size:13px;color:var(--grey)">{{ new Date(o.created_at).toLocaleDateString('ru') }}</p>
           </div>
-          <span :class="['badge', statusClass(o.status)]">{{ o.status }}</span>
+          <span :class="['badge', statusClass(o.status)]">{{ statusLabel(o.status) }}</span>
           <p style="font-weight:500">₽{{ Number(o.total).toLocaleString('ru') }}</p>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px">
@@ -29,8 +29,26 @@ import { ref, onMounted } from 'vue';
 import { ordersApi } from '@/api';
 const orders  = ref([]);
 const loading = ref(true);
-const statusClass = s => ({ new:'badge-green', paid:'badge-green', shipped:'badge-grey', delivered:'badge-grey', cancelled:'badge-red' })[s] || 'badge-grey';
-onMounted(async () => { const { data } = await ordersApi.list(); orders.value = data; loading.value = false; });
+const statusLabel = s => ({
+  new: 'Новый',
+  paid: 'Оплачен',
+  processing: 'В обработке',
+  shipped: 'Отправлен',
+  delivered: 'Доставлен',
+  cancelled: 'Отменён',
+  refund: 'Возврат'
+})[s] || s;
+const statusClass = s => ({ new:'badge-green', paid:'badge-green', processing:'badge-grey', shipped:'badge-grey', delivered:'badge-grey', cancelled:'badge-red', refund:'badge-red' })[s] || 'badge-grey';
+onMounted(async () => {
+  try {
+    const { data } = await ordersApi.list();
+    orders.value = data;
+  } catch {
+    orders.value = [];
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 <style scoped>
 .order-card { background:white; border-radius:12px; padding:24px; box-shadow:0 1px 4px rgba(0,0,0,.06); }

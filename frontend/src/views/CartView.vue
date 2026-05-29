@@ -17,7 +17,7 @@
               <button style="font-size:12px;color:var(--light);text-decoration:underline" @click="cart.removeItem(item.id)">Удалить</button>
             </div>
           </div>
-          <p style="font-weight:500;margin-left:auto">₽{{ (item.price*item.qty).toLocaleString('ru') }}</p>
+          <p style="font-weight:500;margin-left:auto">₽{{ (Number(item.price)*item.qty).toLocaleString('ru') }}</p>
         </div>
       </div>
       <div class="order-summary">
