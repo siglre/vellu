@@ -146,8 +146,9 @@ async function handleAdd() {
     added.value = true;
     ui.notify(`${product.value.name} добавлен в корзину 🛍️`);
     setTimeout(() => { added.value = false; }, 2000);
-  } catch {
-    ui.notify('Не удалось добавить в корзину');
+  } catch (e) {
+    const msg = e.response?.data?.error || e.message || 'Не удалось добавить в корзину';
+    ui.notify(msg);
   } finally { adding.value = false; }
 }
 </script>
